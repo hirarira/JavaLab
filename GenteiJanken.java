@@ -28,6 +28,8 @@ public class GenteiJanken {
 		int star;
 		//	所持金
 		int money;
+		// 開始時所持金
+		int startMoney;
 		// 星の買取価格
 		int StarValue;
 		Player(int no){
@@ -40,6 +42,7 @@ public class GenteiJanken {
 			this.star = 3;
 			// 所持金は乱数で決まる。
 			this.money = (int) (Math.round(1+Math.pow(rnd.nextInt(60), 1.5))*1000);
+			this.startMoney = this.money;
 			// 星の買取価格は自分の所持金/星の個数
 			this.StarValue = this.money / this.star;
 		}
@@ -90,7 +93,7 @@ public class GenteiJanken {
 				System.out.print("Lose...");
 			}
 			System.out.println(":グー:"+this.card[0]+"チョキ:"+this.card[1]+"パー"+
-					this.card[2]+"星:"+this.star+"所持金:"+this.money);
+					this.card[2]+"星:"+this.star+"所持金:"+this.money+"利益:"+(this.money-this.startMoney));
 		}
 		// 終了判定
 		void EndCheck(){
@@ -101,12 +104,12 @@ public class GenteiJanken {
 					System.out.println(this.no+":LOSE...");
 				}
 			}
-			if(this.card[0]<=0&&this.card[1]<=0&&this.card[2]<=0){
+			else if(this.card[0]<=0&&this.card[1]<=0&&this.card[2]<=0){
 				this.live = false;
 				if(this.star >=3){
 					this.success = true;
 					if(DEBUGOUT){
-						System.out.println(this.no+":SUCCES!");
+						System.out.println(this.no+":SUCCESS!");
 					}
 				}
 				else{
@@ -165,12 +168,14 @@ public class GenteiJanken {
 	}
 	public static void main(String[] args) {
 		// 参加者100人生成
-		Player player[] = new Player[100];
+		Player player[] = new Player[PLAY_NUM];
 		for(int i=0;i<PLAY_NUM;i++){
 			player[i] = new Player(i);
 		}
 		// 生存者数
 		int liveNum = PLAY_NUM;
+		// バトルカウント
+		int BCount =1;
 		/********************ゲーム開始********************/
 		while(liveNum >= 2){
 			// 対戦相手決定
@@ -182,15 +187,21 @@ public class GenteiJanken {
 				pear[1] = rnd.nextInt(PLAY_NUM);
 			}while(!(player[pear[1]].live) || (pear[0]==pear[1]));
 			// バトル
+			if(DEBUGOUT){
+				System.out.print(BCount+"戦目：");
+			}
 			Battle(player[pear[0]],player[pear[1]]);
+			if(DEBUGOUT){
+				System.out.println("----------------------------------------");
+			}
 			// 星の相場チェック
 			for(int i=0;i<PLAY_NUM;i++){
 				player[i].setStarValue();
 			}
 			// 星が無くなった奴は買い取り
 			for(int i=0;i<PLAY_NUM;i++){
-				if(player[i].star==0&&player[i].card[0]!=0&&
-						player[i].card[1]!=0&&player[i].card[2]!=0){
+				int cardnum = player[i].card[0] + player[i].card[1] + player[i].card[2];
+				if(player[i].star==0&&cardnum!=0){
 					for(int j=0;j<PLAY_NUM;j++){
 						if(player[j].star > 3 && player[i].money >= player[j].StarValue){
 							player[i].money -= player[j].StarValue;
@@ -211,12 +222,14 @@ public class GenteiJanken {
 			for(int i=0;i<PLAY_NUM;i++){
 				liveNum = player[i].live?liveNum+1:liveNum;
 			}
+			BCount++;
 		}
 		// 星の相場チェック
 		for(int i=0;i<PLAY_NUM;i++){
 			player[i].setStarValue();
 		}
-		// 最後の星オーディション
+		System.out.println("*****星オークション*****");
+		// 最後の星オークション
 		for(int i=0;i<PLAY_NUM;i++){
 			if(!player[i].success && player[i].card[0]==0&&
 					player[i].card[1]==0&&player[i].card[2]==0){
@@ -232,15 +245,29 @@ public class GenteiJanken {
 						if(DEBUGOUT){
 							System.out.println("星売買成立："+player[j].no+"→"+player[i].no+"成立価格:"+player[j].StarValue+"個数:"+need_star);
 						}
+						player[j].setStarValue();
+						break;
 					}
 				}
 			}
 		}
 		//	結果発表
 		System.out.println("*****結果発表*****");
+		int ownMoney =0,losenum=0,plusnum=0;
 		for(int i=0;i<PLAY_NUM;i++){
 			player[i].showresult();
+			if(!player[i].success){
+				ownMoney += player[i].money;
+				losenum++;
+			}
+			else if(player[i].money - player[i].startMoney > 0){
+				plusnum++;
+			}
 		}
+		System.out.println("胴元利益:"+ownMoney);
+		System.out.println("敗北者:"+losenum);
+		System.out.println("利益が出た人数:"+plusnum);
+		System.out.println("勝利はしたが損失を出した数:"+(PLAY_NUM-(losenum+plusnum)));
 	}
 
 }
